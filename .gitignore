@@ -1,0 +1,4 @@
+solidjs-dist
+node_modules
+app/.vite
+electron/out

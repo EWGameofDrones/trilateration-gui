@@ -1,0 +1,17 @@
+{
+  "name": "trilateration-gui",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "concurrently --kill-others \"cd app && npm run dev\" \"cd electron && npm run dev\"",
+    "build": "cd app && npm run build",
+    "start": "cd electron && npm run start",
+    "install-all": "npm install && cd app && npm install && cd ../electron && npm install",
+    "make": "npm run build && cd electron && npm run make"
+  },
+  "author": "William S Black",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
