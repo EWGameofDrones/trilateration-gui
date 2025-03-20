@@ -31,16 +31,6 @@ const createWindow = () => {
 
 // wait until electronjs is ready before some operations
 app.whenReady().then(() => {
-    // WIP: set up project to avoid security warnings
-    // session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-    //     callback({
-    //         responseHeaders: {
-    //             ...details.responseHeaders,
-    //             'Content-Security-Policy': ['default-src \'localhost\'']
-    //         }
-    //     })
-    // })
-
     // start the app by creating a window
     createWindow()
 
