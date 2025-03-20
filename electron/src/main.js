@@ -16,7 +16,6 @@ const createWindow = () => {
         // not set to desired setting yet
         width: 800,
         height: 600,
-        alwaysOnTop: true,
     })
 
     if (isDev) {
