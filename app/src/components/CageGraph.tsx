@@ -86,10 +86,10 @@ export const CageGraph: Component<CageGraphProps> = (props) => {
       setBottomPos(axisHeight + 2 * cornerGap - sideGap)
 
       // have d3 render the axes
-      select(leftAxis).call(axisLeft(yScale))
-      select(rightAxis).call(axisRight(yScale))
-      select(topAxis).call(axisTop(xScale))
-      select(bottomAxis).call(axisBottom(xScale))
+      select(leftAxis).transition().call(axisLeft(yScale))
+      select(rightAxis).transition().call(axisRight(yScale))
+      select(topAxis).transition().call(axisTop(xScale))
+      select(bottomAxis).transition().call(axisBottom(xScale))
     } else {
       console.warn('Could not load axis!')
     }
