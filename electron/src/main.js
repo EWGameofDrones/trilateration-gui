@@ -1,7 +1,8 @@
-import { app, BrowserWindow } from "electron"
+import { app, BrowserWindow, ipcMain } from "electron"
 import path, { dirname } from 'path'
 import { fileURLToPath } from "url"
-import { session } from "electron"
+import { SerialPort } from 'serialport'
+import { ReadlineParser } from '@serialport/parser-readline'
 
 // get file structure information for accessing required files
 const fileName = fileURLToPath(import.meta.url)
@@ -10,13 +11,82 @@ const dirName = dirname(fileName)
 // determine if this was run with the dev tag.
 const isDev = process.argv.includes('--mode=dev')
 
+// Serial port connection
+let serialConnection = null
+ 
+// Initialize serial connection
+function initSerialConnection() {
+    console.log("initSerialConnection")
+  try {
+    serialConnection = new SerialPort({
+      path: '/dev/ttyACM0', // Linux path
+      baudRate: 115200,
+      dataBits: 8,          // EIGHTBITS
+      parity: 'none',       // PARITY_NONE
+      stopBits: 1,          // STOPBITS_ONE
+      autoOpen: true,
+    //   timeout: 1000         // 1 second timeout in milliseconds
+    })
+
+    const parser = new ReadlineParser({
+        delimiter: '\n',
+        encoding: 'utf8',
+        includeDelimiter: false
+    })
+
+    // Pipe serial to parser
+    serialConnection.pipe(parser)
+    
+    // Debug: Monitor raw data
+    // serialConnection.on('data', (data) => {
+    //     console.log("Raw UTF8:", data.toString('utf8'))
+    // })
+
+    // Parser handler
+    parser.on('data', (line) => {
+        console.log('Parsed line:', line)
+    })
+
+    // Debug: Monitor parser errors
+    parser.on('error', (err) => {
+        console.error('Parser error:', err)
+        })
+    
+    serialConnection.on('open', () => {
+        console.log('Serial port opened successfully')
+    })
+
+    serialConnection.on('error', (err) => {
+        console.error('Serial port error:', err)
+    })
+      
+
+    console.log("\n\n")
+
+    return true
+  } catch (error) {
+    console.error('Failed to open serial port:', error)
+    return false
+  }
+}
+
 // will create a window of the web app
 const createWindow = () => {
+    // // Disable GPU
+    // app.commandLine.appendSwitch('disable-gpu');
+
+    // // Disable DevTools extensions to prevent some warnings
+    // app.commandLine.appendSwitch('disable-extensions');
+
     const win = new BrowserWindow({
         // not set to desired setting yet
         width: 800,
         height: 600,
         alwaysOnTop: true,
+        // webPreferences: {
+        //     nodeIntegration: false,
+        //     contextIsolation: true,
+        // }
     })
 
     if (isDev) {
@@ -25,34 +95,33 @@ const createWindow = () => {
         win.loadURL('http://localhost:3000')
         win.webContents.openDevTools()
     } else {
-        // load in the static html file
         win.loadFile(path.join(dirName, '../solidjs-dist/index.html'))
     }
 }
 
 // wait until electronjs is ready before some operations
 app.whenReady().then(() => {
-    // WIP: set up project to avoid security warnings
-    // session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-    //     callback({
-    //         responseHeaders: {
-    //             ...details.responseHeaders,
-    //             'Content-Security-Policy': ['default-src \'localhost\'']
-    //         }
-    //     })
-    // })
-
-    // start the app by creating a window
     createWindow()
+    console.log("window created")
+    
+    // Initialize serial connection after window is created
+    initSerialConnection()
+
+    ipcMain.handle('serial-status', () => {
+        return serialConnection && serialConnection.isOpen
+    })
 
     app.on('activate', () => {
-        // if the app is activated but there are no windows, create a window
+            // if the app is activated but there are no windows, create a window
         if (BrowserWindow.getAllWindows().length === 0) createWindow()
     })
 })
 
 app.on('window-all-closed', () => {
-    // if all windows are closed, quit the application
-    // (unless you are on a mac)
+    // Close serial connection before quitting
+    if (serialConnection && serialConnection.isOpen) {
+        serialConnection.close()
+    }
+
     if (process.platform !== 'darwin') app.quit()
 })
