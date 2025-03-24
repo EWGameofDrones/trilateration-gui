@@ -3,58 +3,107 @@ import {
   axisLeft,
   axisRight,
   axisTop,
-  ScaleLinear,
   scaleLinear,
   select,
 } from 'd3'
-import { Component, createSignal, onCleanup, onMount } from 'solid-js'
+import {
+  Component,
+  createEffect,
+  createSignal,
+  onCleanup,
+  onMount,
+} from 'solid-js'
 
+// props to be passed into CageGraph components
 type CageGraphProps = {}
 
+// renders the grid display as well as the markers on it
 export const CageGraph: Component<CageGraphProps> = (props) => {
+  // references to each axis graphic
+  // used to update axes on changed data
   let leftAxis: undefined | SVGGElement
   let rightAxis: undefined | SVGGElement
   let topAxis: undefined | SVGGElement
   let bottomAxis: undefined | SVGGElement
+
+  // reference to the div containing the graphics
+  // used to find available size
   let containerDiv: undefined | HTMLDivElement
 
-  const cageWidth = 20
-  const cageLength = 40
+  // gaps by axes to improve readability
+  const cornerGap = 40 // gap lengthwise along an axis
+  const sideGap = 30 // gap perpendicular to an axis
 
+  // dimensions of the cage in feet
+  const [cageWidth, setCageWidth] = createSignal(20)
+  const [cageLength, setCageLength] = createSignal(40)
+
+  // holds available size for the graphic
+  const [graphicHeight, setGraphicHeight] = createSignal<number>(100)
+  const [graphicWidth, setGraphicWidth] = createSignal<number>(100)
+
+  // used to set the position of the right and bottom axes
+  // as the size of the grid changes
   const [rightPos, setRightPos] = createSignal(0)
   const [bottomPos, setBottomPos] = createSignal(0)
 
-  let xScale: ScaleLinear<number, number, never>
-  let yScale: ScaleLinear<number, number, never>
-
-  const calculateScales = () => {
-    if (containerDiv !== undefined) {
-      xScale = scaleLinear([0, cageLength], [0, containerDiv.offsetHeight - 80])
-      yScale = scaleLinear([0, cageWidth], [0, containerDiv.offsetWidth - 80])
-    }
-  }
-
-  const handleResize = () => {
+  createEffect(() => {
     if (
       leftAxis !== undefined &&
       rightAxis !== undefined &&
       topAxis !== undefined &&
-      bottomAxis !== undefined &&
-      containerDiv !== undefined
+      bottomAxis !== undefined
     ) {
-      calculateScales()
-      setRightPos(containerDiv.offsetWidth - 30)
-      setBottomPos(containerDiv.offsetHeight - 30)
-      select(leftAxis).call(axisLeft(xScale))
-      select(rightAxis).call(axisRight(xScale))
-      select(topAxis).call(axisTop(yScale))
-      select(bottomAxis).call(axisBottom(yScale))
+      // calculate the size of the axes in order to maintain a 1:1 ratio while
+      // taking up as much space as possible
+      let axisWidth: number
+      let axisHeight: number
+      if (graphicWidth() / graphicHeight() > cageLength() / cageWidth()) {
+        // if the container's width is the constraining dimension, use that
+        //   as the base for the axes height
+        // subtract the gaps in the corners to avoid the axis hitting the edge of
+        //   available space
+        axisHeight = graphicHeight() - 2 * cornerGap
+        // maintain 1:1
+        axisWidth = cageLength() * (axisHeight / cageWidth())
+      } else {
+        // if the container's height is the constraining dimension, use that
+        //   as the base for the axes width
+        // subtract the gaps in the corners to avoid the axis hitting the edge of
+        //   available space
+        axisWidth = graphicWidth() - 2 * cornerGap
+        // maintain 1:1
+        axisHeight = cageWidth() * (axisWidth / cageLength())
+      }
+
+      // create the scales to be used in mapping the grid size (ft) to the
+      // screen size (pixels)
+      const xScale = scaleLinear([0, cageLength()], [0, axisWidth])
+      const yScale = scaleLinear([0, cageWidth()], [0, axisHeight])
+
+      // ensure teh right and bottom axes are appropriately positioned
+      setRightPos(axisWidth + 2 * cornerGap - sideGap)
+      setBottomPos(axisHeight + 2 * cornerGap - sideGap)
+
+      // have d3 render the axes
+      select(leftAxis).call(axisLeft(yScale))
+      select(rightAxis).call(axisRight(yScale))
+      select(topAxis).call(axisTop(xScale))
+      select(bottomAxis).call(axisBottom(xScale))
     } else {
       console.warn('Could not load axis!')
     }
+  })
+
+  // resize event handler
+  const handleResize = () => {
+    if (containerDiv !== undefined) {
+      // get the size of the constraining container
+      setGraphicHeight(containerDiv.offsetHeight)
+      setGraphicWidth(containerDiv.offsetWidth)
+    }
   }
 
-  scaleLinear()
   onMount(() => {
     window.addEventListener('resize', handleResize)
     handleResize()
@@ -71,21 +120,22 @@ export const CageGraph: Component<CageGraphProps> = (props) => {
         class="size-full flex-1"
       >
         <svg class="size-full">
+          {/* Axes */}
           <g
             ref={leftAxis}
-            transform="translate(30, 40)"
+            transform={`translate(${sideGap}, ${cornerGap})`}
           />
           <g
             ref={rightAxis}
-            transform={`translate(${rightPos()}, 40)`}
+            transform={`translate(${rightPos()}, ${cornerGap})`}
           />
           <g
             ref={topAxis}
-            transform={`translate(40, 30)`}
+            transform={`translate(${cornerGap}, ${sideGap})`}
           />
           <g
             ref={bottomAxis}
-            transform={`translate(40, ${bottomPos()})`}
+            transform={`translate(${cornerGap}, ${bottomPos()})`}
           />
         </svg>
       </div>
