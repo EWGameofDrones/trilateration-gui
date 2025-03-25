@@ -16,11 +16,8 @@ import {
 } from 'solid-js'
 import { CageLines } from './CageLines'
 
-// props to be passed into CageGraph components
-type CageGraphProps = {}
-
 // renders the grid display as well as the markers on it
-export const CageGraph: Component<CageGraphProps> = (props) => {
+export const CageGraph: Component<{}> = (props) => {
   // references to each axis graphic
   // used to update axes on changed data
   let leftAxis: undefined | SVGGElement
