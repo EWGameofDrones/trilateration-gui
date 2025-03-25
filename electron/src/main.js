@@ -3,6 +3,7 @@ import path, { dirname } from 'path'
 import { fileURLToPath } from "url"
 import { SerialPort } from 'serialport'
 import { ReadlineParser } from '@serialport/parser-readline'
+import { trilaterationCalculations } from '../util/calculations.js'
 
 // get file structure information for accessing required files
 const fileName = fileURLToPath(import.meta.url)
@@ -43,8 +44,28 @@ function initSerialConnection() {
     // })
 
     // Parser handler
+    let a = 0
+    let b = 0
+    let c = 0
     parser.on('data', (line) => {
-        console.log('Parsed line:', line)
+      let arr = line.split(' ')
+      if (arr[0] == "A") { 
+        a = parseFloat(arr[1])
+      }
+      if (arr[0] == "B") {
+        b = parseFloat(arr[1])
+      }
+      if (arr[0] == "C") {
+        c = parseFloat(arr[1])
+      }
+      if (a != 0 && b != 0 && c != 0) {
+        // console.log(a, b, c)
+        console.log(trilaterationCalculations(a, b, c))
+        a = 0
+        b = 0
+        c = 0
+      }
+      // console.log('Parsed line:', arr[0], arr[1], arr[2])
     })
 
     // Debug: Monitor parser errors
