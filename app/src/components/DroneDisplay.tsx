@@ -5,7 +5,7 @@ import {
   registerPacketHandler,
 } from '../electronInteraction/handlePacket'
 import droneIcon from '../assets/drone-svgrepo-com.svg?url'
-import { createStore, unwrap } from 'solid-js/store'
+import { createStore, produce, unwrap } from 'solid-js/store'
 
 // used to represent the state of a drone graphic
 type DroneState = {
@@ -30,6 +30,11 @@ type DroneState = {
   y: number
   // 0-1 | completeness of movement animation
   animationProgress: number
+  // stores the drone's path over the course of the game
+  path: {
+    x: number
+    y: number
+  }[]
 }
 
 export const DroneDisplay: Component<{
@@ -44,6 +49,10 @@ export const DroneDisplay: Component<{
 
   const moveRate = 0.25 // time it takes in seconds for a drone icon to move
   const fpsCap = 60 // maximum amount of frames per second to allow resource allocation for
+
+  // the smallest distance in feet away from the last path node
+  // for which a new path node will be generated
+  const pathResolution = 1
 
   // if the animation is done and there is a move in the queue,
   // start an animation to move toward it
@@ -127,6 +136,38 @@ export const DroneDisplay: Component<{
     checkForNewMove(id)
   }
 
+  // record flight paths of a drone
+  async function trackPath(id: number) {
+    if (!(id in droneStates)) return
+    const state = droneStates[id]
+
+    while (true) {
+      const lastPathNode = state.path[state.path.length - 1]
+
+      // if the drone has moved far enough away from the last path
+      // point, add a new one
+      if (
+        Math.sqrt(
+          Math.pow(state.x - lastPathNode.x, 2) +
+            Math.pow(state.y - lastPathNode.y, 2)
+        ) >= pathResolution
+      ) {
+        setDroneStates(
+          id,
+          'path',
+          produce((prev) =>
+            prev.push({ x: unwrap(state.x), y: unwrap(state.y) })
+          )
+        )
+      }
+
+      // wait to avoid going over the fps cap
+      await new Promise<void>((resolve) =>
+        setTimeout(() => resolve(), 1000 / fpsCap)
+      )
+    }
+  }
+
   // set the drone graphics' states based on packets received from the main electron proccess
   const handleMovement = (move: PositionPacket) => {
     // if the drone with the given id does not yet have a graphic,
@@ -139,7 +180,9 @@ export const DroneDisplay: Component<{
         queuedPos: { x: move.x, y: move.y },
         x: move.x,
         y: move.y,
+        path: [{ x: move.x, y: move.y }],
       })
+      trackPath(move.id)
       return
     }
 
