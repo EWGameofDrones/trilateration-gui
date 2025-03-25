@@ -79,25 +79,32 @@ const createWindow = () => {
     // // Disable DevTools extensions to prevent some warnings
     // app.commandLine.appendSwitch('disable-extensions');
 
-    const win = new BrowserWindow({
-        // not set to desired setting yet
-        width: 800,
-        height: 600,
-        alwaysOnTop: true,
-        // webPreferences: {
-        //     nodeIntegration: false,
-        //     contextIsolation: true,
-        // }
-    })
+    // const win = new BrowserWindow({
+    //     // not set to desired setting yet
+    //     width: 800,
+    //     height: 600,
+    //     alwaysOnTop: true,
+    //     // webPreferences: {
+    //     //     nodeIntegration: false,
+    //     //     contextIsolation: true,
+    //     // }
+    // })
+  const win = new BrowserWindow({
+    // not set to desired setting yet
+    width: 1920,
+    height: 1200,
+    fullscreen: true,
+  })
 
-    if (isDev) {
-        // if we are in dev mode, instead of loading the static files, load the url we are expecting
-        // vite to be hosting the webpage at.
-        win.loadURL('http://localhost:3000')
-        win.webContents.openDevTools()
-    } else {
-        win.loadFile(path.join(dirName, '../solidjs-dist/index.html'))
-    }
+  if (isDev) {
+    // if we are in dev mode, instead of loading the static files, load the url we are expecting
+    // vite to be hosting the webpage at.
+    win.loadURL('http://localhost:3000')
+    win.webContents.openDevTools()
+  } else {
+    // load in the static html file
+    win.loadFile(path.join(dirName, '../solidjs-dist/index.html'))
+  }
 }
 
 // wait until electronjs is ready before some operations
@@ -112,10 +119,10 @@ app.whenReady().then(() => {
         return serialConnection && serialConnection.isOpen
     })
 
-    app.on('activate', () => {
-            // if the app is activated but there are no windows, create a window
-        if (BrowserWindow.getAllWindows().length === 0) createWindow()
-    })
+  app.on('activate', () => {
+    // if the app is activated but there are no windows, create a window
+    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+  })
 })
 
 app.on('window-all-closed', () => {
