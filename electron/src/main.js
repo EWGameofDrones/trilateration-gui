@@ -109,7 +109,7 @@ const createWindow = () => {
 
 // wait until electronjs is ready before some operations
 app.whenReady().then(() => {
-    createWindow()
+    setTimeout(() => createWindow(), 250)
     console.log("window created")
     
     // Initialize serial connection after window is created

@@ -20,7 +20,7 @@ import { CageLines } from './CageLines'
 type CageGraphProps = {}
 
 // renders the grid display as well as the markers on it
-export const CageGraph: Component<CageGraphProps> = (props) => {
+export const CageGraph: Component<CageGraphProps> = () => {
   // references to each axis graphic
   // used to update axes on changed data
   let leftAxis: undefined | SVGGElement
@@ -37,8 +37,8 @@ export const CageGraph: Component<CageGraphProps> = (props) => {
   const sideGap = 80 // gap perpendicular to an axis
 
   // dimensions of the cage in feet
-  const [cageWidth, setCageWidth] = createSignal(20)
-  const [cageLength, setCageLength] = createSignal(40)
+  const [cageWidth, ] = createSignal(20)
+  const [cageLength, ] = createSignal(40)
 
   // holds available size for the graphic
   const [graphicHeight, setGraphicHeight] = createSignal<number>(100)
