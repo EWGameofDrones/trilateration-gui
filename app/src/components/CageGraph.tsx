@@ -15,6 +15,7 @@ import {
   onMount,
 } from 'solid-js'
 import { CageLines } from './CageLines'
+import { DroneDisplay } from './DroneDisplay'
 
 // renders the grid display as well as the markers on it
 export const CageGraph: Component<{}> = () => {
@@ -153,6 +154,10 @@ export const CageGraph: Component<{}> = () => {
           />
 
           <CageLines
+            xScale={getXScale()}
+            yScale={getYScale()}
+          />
+          <DroneDisplay
             xScale={getXScale()}
             yScale={getYScale()}
           />

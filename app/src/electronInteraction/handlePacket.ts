@@ -1,3 +1,4 @@
+import { onCleanup, Owner, runWithOwner } from 'solid-js'
 import { z } from 'zod'
 
 // define the data type we will accept from the main process
@@ -6,7 +7,7 @@ const packetSchema = z.object({
   x: z.number(),
   y: z.number(),
 })
-type PositionPacket = z.infer<typeof packetSchema>
+export type PositionPacket = z.infer<typeof packetSchema>
 
 // we store all functions that want to be called when
 // we get a new packet
@@ -14,14 +15,19 @@ const handlers: ((packet: PositionPacket) => unknown)[] = []
 
 // save a callback to be called whenever we get a new packet
 export function registerPacketHandler(
-  handler: (packet: PositionPacket) => unknown
+  handler: (packet: PositionPacket) => unknown,
+  owner?: Owner | null
 ) {
   handlers.push(handler)
 
-  // return a cleanup function
-  return () => {
-    const handlerIndex = handlers.indexOf(handler)
-    if (handlerIndex !== -1) handlers.splice(handlerIndex, 1)
+  // register a cleanup function
+  if (owner !== undefined) {
+    runWithOwner(owner, () => {
+      onCleanup(() => {
+        const handlerIndex = handlers.indexOf(handler)
+        if (handlerIndex !== -1) handlers.splice(handlerIndex, 1)
+      })
+    })
   }
 }
 
