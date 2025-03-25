@@ -13,13 +13,13 @@ const isDev = process.argv.includes('--mode=dev')
 
 // Serial port connection
 let serialConnection = null
- 
 // Initialize serial connection
 function initSerialConnection() {
     console.log("initSerialConnection")
   try {
+    const serialPath = process.platform === 'win32' ? 'COM3' : '/dev/ttyACM0'; // Windows path vs Linux path
     serialConnection = new SerialPort({
-      path: '/dev/ttyACM0', // Linux path
+      path: serialPath,
       baudRate: 115200,
       dataBits: 8,          // EIGHTBITS
       parity: 'none',       // PARITY_NONE
@@ -66,6 +66,7 @@ function initSerialConnection() {
     return true
   } catch (error) {
     console.error('Failed to open serial port:', error)
+    console.error("plug in USB anchor first")
     return false
   }
 }
