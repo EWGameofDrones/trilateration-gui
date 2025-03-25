@@ -1,7 +1,6 @@
 import { app, BrowserWindow } from 'electron'
 import path, { dirname } from 'path'
 import { fileURLToPath } from 'url'
-import { session } from 'electron'
 
 // get file structure information for accessing required files
 const fileName = fileURLToPath(import.meta.url)
@@ -17,6 +16,9 @@ const createWindow = () => {
     width: 1920,
     height: 1200,
     fullscreen: true,
+    webPreferences: {
+      preload: path.join(dirName, 'preload.js'),
+    },
   })
 
   if (isDev) {
