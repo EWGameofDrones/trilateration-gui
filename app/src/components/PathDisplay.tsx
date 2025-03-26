@@ -1,5 +1,5 @@
 import { ScaleLinear } from 'd3'
-import { Component, mapArray } from 'solid-js'
+import { Component, createMemo, mapArray } from 'solid-js'
 import { clamp } from '../util/clamp'
 
 // colors for different drones
@@ -85,9 +85,13 @@ export const PathDisplay: Component<{
       // first point doesn't need a line.
       // instead start the line there
       if (index() === 0) {
-        return `M ${Math.round(props.xScale(point.x))} ${Math.round(
-          props.yScale(point.y)
-        )}`
+        const getInstruction = createMemo(
+          () =>
+            `M ${Math.round(props.xScale(point.x))} ${Math.round(
+              props.yScale(point.y)
+            )}`
+        )
+        return getInstruction
       }
 
       // get points 2 previous and 1 ahead
@@ -109,19 +113,29 @@ export const PathDisplay: Component<{
         true
       )
 
-      // generate the curve instruction
-      return `C ${props.xScale(startControl.x)} ${props.yScale(
-        startControl.y
-      )} ${props.xScale(endControl.x)} ${props.yScale(
-        endControl.y
-      )} ${props.xScale(point.x)} ${props.yScale(point.y)}`
+      // memoize it so paths are recalculated if the
+      // scale changes
+      const getInstruction = createMemo(
+        // generate the curve instruction
+        () =>
+          `C ${props.xScale(startControl.x)} ${props.yScale(
+            startControl.y
+          )} ${props.xScale(endControl.x)} ${props.yScale(
+            endControl.y
+          )} ${props.xScale(point.x)} ${props.yScale(point.y)}`
+      )
+
+      // return the memo
+      return getInstruction
     }
   )
 
   return (
     <>
       <path
-        d={pathInstructions().join('\n')}
+        d={pathInstructions()
+          .map((memo) => memo())
+          .join('\n')}
         stroke={pathColors[props.index % pathColors.length]}
         stroke-width="2"
         fill-opacity="0"

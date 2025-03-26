@@ -130,6 +130,24 @@ export const CageGraph: Component<{}> = () => {
     window.removeEventListener('resize', handleResize)
   })
 
+  async function demoDroneMovement() {
+    while (true) {
+      parsePacket({
+        x: Math.random() * cageLength(),
+        y: Math.random() * cageWidth(),
+        id: 0,
+      })
+      parsePacket({
+        x: Math.random() * cageLength(),
+        y: Math.random() * cageWidth(),
+        id: 1,
+      })
+      await new Promise<void>((resolve) => setTimeout(() => resolve(), 1000))
+    }
+  }
+
+  demoDroneMovement()
+
   return (
     <>
       <div
