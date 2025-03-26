@@ -206,6 +206,7 @@ export const DroneDisplay: Component<{
               height={props.droneSize}
               x={Math.floor(props.xScale(state.x) - 0.5 * props.droneSize)}
               y={Math.floor(props.yScale(state.y) - 0.5 * props.droneSize)}
+              filter="invert(100%)"
             />
             {/* path */}
             <Show when={props.showPaths === true}>
