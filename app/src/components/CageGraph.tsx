@@ -7,6 +7,7 @@ import {
   select,
 } from 'd3'
 import {
+  Accessor,
   Component,
   createEffect,
   createMemo,
@@ -16,10 +17,11 @@ import {
 } from 'solid-js'
 import { CageLines } from './CageLines'
 import { DroneDisplay } from './DroneDisplay'
-import { parsePacket } from '../electronInteraction/handlePacket'
 
 // renders the grid display as well as the markers on it
-export const CageGraph: Component<{}> = () => {
+export const CageGraph: Component<{
+  showPaths: Accessor<boolean>
+}> = (props) => {
   // references to each axis graphic
   // used to update axes on changed data
   let leftAxis: undefined | SVGGElement
@@ -163,7 +165,7 @@ export const CageGraph: Component<{}> = () => {
             xScale={getXScale()}
             yScale={getYScale()}
             droneSize={droneProportion * getYScale().range()[1]}
-            showPaths={true}
+            showPaths={props.showPaths()}
           />
         </svg>
       </div>

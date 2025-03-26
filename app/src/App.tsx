@@ -25,7 +25,7 @@ const App: Component<{}> = () => {
 
   return (
     <div class="w-screen flex flex-col h-screen">
-      <CageGraph />
+      <CageGraph showPaths={showPaths} />
 
       <button
         ref={buttonRef}
