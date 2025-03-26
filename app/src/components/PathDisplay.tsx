@@ -2,6 +2,15 @@ import { ScaleLinear } from 'd3'
 import { Component, mapArray } from 'solid-js'
 import { clamp } from '../util/clamp'
 
+// colors for different drones
+const pathColors = [
+  'rgb(194,0,251)',
+  'rgb(236,8,104)',
+  'rgb(252,47,0)',
+  'rgb(236,125,16)',
+  'rgb(255,188,10)',
+]
+
 // given two points, get info about the line between them
 function getLine(
   point1: {
@@ -113,7 +122,7 @@ export const PathDisplay: Component<{
     <>
       <path
         d={pathInstructions().join('\n')}
-        stroke="blue"
+        stroke={pathColors[props.index % pathColors.length]}
         stroke-width="2"
         fill-opacity="0"
       />
