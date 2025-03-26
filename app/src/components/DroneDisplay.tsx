@@ -1,11 +1,12 @@
 import { easeQuadInOut, ScaleLinear } from 'd3'
-import { Component, For, getOwner } from 'solid-js'
+import { Component, For, getOwner, Show } from 'solid-js'
 import {
   PositionPacket,
   registerPacketHandler,
 } from '../electronInteraction/handlePacket'
 import droneIcon from '../assets/drone-svgrepo-com.svg?url'
 import { createStore, produce, unwrap } from 'solid-js/store'
+import { PathDisplay } from './PathDisplay'
 
 // used to represent the state of a drone graphic
 type DroneState = {
@@ -41,6 +42,7 @@ export const DroneDisplay: Component<{
   xScale: ScaleLinear<number, number, never>
   yScale: ScaleLinear<number, number, never>
   droneSize: number
+  showPaths: boolean
 }> = (props) => {
   // track the state of each drone graphic seperately
   const [droneStates, setDroneStates] = createStore<Record<number, DroneState>>(
@@ -195,14 +197,26 @@ export const DroneDisplay: Component<{
   return (
     <>
       <For each={Object.values(droneStates)}>
-        {(state) => (
-          <image
-            href={droneIcon}
-            width={props.droneSize}
-            height={props.droneSize}
-            x={Math.floor(props.xScale(state.x) - 0.5 * props.droneSize)}
-            y={Math.floor(props.yScale(state.y) - 0.5 * props.droneSize)}
-          />
+        {(state, index) => (
+          <>
+            {/* icon */}
+            <image
+              href={droneIcon}
+              width={props.droneSize}
+              height={props.droneSize}
+              x={Math.floor(props.xScale(state.x) - 0.5 * props.droneSize)}
+              y={Math.floor(props.yScale(state.y) - 0.5 * props.droneSize)}
+            />
+            {/* path */}
+            <Show when={props.showPaths === true}>
+              <PathDisplay
+                xScale={props.xScale}
+                yScale={props.yScale}
+                path={state.path}
+                index={index()}
+              />
+            </Show>
+          </>
         )}
       </For>
     </>
