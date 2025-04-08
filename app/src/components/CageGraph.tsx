@@ -7,6 +7,7 @@ import {
   select,
 } from 'd3'
 import {
+  Accessor,
   Component,
   createEffect,
   createMemo,
@@ -15,12 +16,12 @@ import {
   onMount,
 } from 'solid-js'
 import { CageLines } from './CageLines'
-
-// props to be passed into CageGraph components
-type CageGraphProps = {}
+import { DroneDisplay } from './DroneDisplay'
 
 // renders the grid display as well as the markers on it
-export const CageGraph: Component<CageGraphProps> = () => {
+export const CageGraph: Component<{
+  showPaths: Accessor<boolean>
+}> = (props) => {
   // references to each axis graphic
   // used to update axes on changed data
   let leftAxis: undefined | SVGGElement
@@ -35,10 +36,11 @@ export const CageGraph: Component<CageGraphProps> = () => {
   // gaps by axes to improve readability
   const cornerGap = 10 // gap lengthwise along an axis
   const sideGap = 80 // gap perpendicular to an axis
+  const droneProportion = 0.05 // percent of the cage width that a drone icon should occupy
 
   // dimensions of the cage in feet
-  const [cageWidth, ] = createSignal(20)
-  const [cageLength, ] = createSignal(40)
+  const [cageWidth] = createSignal(4.24)
+  const [cageLength] = createSignal(5.664)
 
   // holds available size for the graphic
   const [graphicHeight, setGraphicHeight] = createSignal<number>(100)
@@ -158,6 +160,12 @@ export const CageGraph: Component<CageGraphProps> = () => {
           <CageLines
             xScale={getXScale()}
             yScale={getYScale()}
+          />
+          <DroneDisplay
+            xScale={getXScale()}
+            yScale={getYScale()}
+            droneSize={droneProportion * getYScale().range()[1]}
+            showPaths={props.showPaths()}
           />
         </svg>
       </div>

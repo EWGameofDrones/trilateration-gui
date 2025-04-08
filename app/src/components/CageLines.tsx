@@ -29,12 +29,12 @@ export const CageLines: Component<{
           Array(3)
             .fill({})
             .map((_, yIndex) => ({
-              width: xIndex === 2 ? lastWidth : width,
-              height: yIndex === 2 ? lastHeight : height,
-              x: xRange[0] + xIndex * normalWidth,
-              y: yRange[0] + yIndex * normalHeight,
-              style: 'stroke-width:3; stroke:grey',
-              fill: 'white',
+              'width': xIndex === 2 ? lastWidth : width,
+              'height': yIndex === 2 ? lastHeight : height,
+              'x': xRange[0] + xIndex * normalWidth,
+              'y': yRange[0] + yIndex * normalHeight,
+              'style': 'stroke-width:3; stroke:grey',
+              'fill-opacity': 0,
             }))
         )
     }
