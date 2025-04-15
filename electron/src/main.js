@@ -3,7 +3,13 @@ import path, { dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { SerialPort } from 'serialport'
 import { ReadlineParser } from '@serialport/parser-readline'
-import { trilaterationCalculations } from '../util/calculations.js'
+import { trilaterationCalculations, kalmanFilterPosition } from '../util/calculations.js'
+import { Worker, isMainThread, parentPort } from 'worker_threads'
+import * as math from 'mathjs';
+// const fs = require('fs');
+import fs from 'fs'
+
+
 
 // get file structure information for accessing required files
 const fileName = fileURLToPath(import.meta.url)
@@ -11,6 +17,7 @@ const dirName = dirname(fileName)
 
 // determine if this was run with the dev tag.
 const isDev = process.argv.includes('--mode=dev')
+let lastFilteredPosition = null
 
 // Serial port connection
 let serialConnection = null
@@ -21,11 +28,44 @@ const yArr = []
 let positionBuffer = [];
 const bufferSize = 15; // Adjust based on desired smoothing level
 
+function interpolatePoints(p1, p2, t) {
+  const x = p1[0] + (p2[0] - p1[0]) * t;
+  const y = p1[1] + (p2[1] - p1[1]) * t;
+  return [x, y];
+}
+
+// In main.js, add these helper functions at the top
+
+// Calculate distance between two points
+function getDistance(pos1, pos2) {
+  if (!pos1 || !pos2) return 0;
+  return Math.sqrt(
+    Math.pow(pos1.x - pos2.x, 2) + Math.pow(pos1.y - pos2.y, 2)
+  );
+}
+
+// Interpolate between two positions
+function interpolatePosition(pos1, pos2, t) {
+  return {
+    x: pos1.x + (pos2.x - pos1.x) * t,
+    y: pos1.y + (pos2.y - pos1.y) * t,
+    id: pos1.id
+  };
+}
+
+let test = {x: 0, y: 0, id: 1};
 // Initialize serial connection
 function initSerialConnection(win) {
   console.log('initSerialConnection')
   try {
     const serialPath = process.platform === 'win32' ? 'COM3' : '/dev/ttyACM0' // Windows path vs Linux path
+
+    // Check if serialPath exists
+    if (!fs.existsSync(serialPath)) {
+      // console.log("Serial path does not exist");
+      console.error(`Serial path does not exist: ${serialPath}`);
+      return false;
+    }
     serialConnection = new SerialPort({
       path: serialPath,
       baudRate: 115200,
@@ -34,13 +74,13 @@ function initSerialConnection(win) {
       stopBits: 1, // STOPBITS_ONE
       autoOpen: true,
     })
-
+    
     const parser = new ReadlineParser({
       delimiter: '\n',
       encoding: 'utf8',
       includeDelimiter: false,
     })
-
+    
     // Pipe serial to parser
     serialConnection.pipe(parser)
 
@@ -52,6 +92,8 @@ function initSerialConnection(win) {
     let aDeque = [];
     let bDeque = [];
     let cDeque = [];
+    console.log("TRY1")
+
     parser.on('data', (line) => {
       let arr = line.split(' ')
       if (arr[0] == "A") { 
@@ -67,49 +109,67 @@ function initSerialConnection(win) {
         // cDeque.push(arr[1])
       }
 
-      // if (aDeque.length > 10) {
-      //   a = aDeque.reduce((acc, val) => acc + parseFloat(val), 0) / aDeque.length
-      //   aDeque.length = 0
-      // }
-      // if (bDeque.length > 10) {
-      //   b = bDeque.reduce((acc, val) => acc + parseFloat(val), 0) / bDeque.length
-      //   bDeque.length = 0
-      // }
-      // if (cDeque.length > 10) {
-      //   c = cDeque.reduce((acc, val) => acc + parseFloat(val), 0) / cDeque.length
-      //   cDeque.length = 0
-      // }
       
       if (a != 0 && b != 0 && c != 0) {
+        test.x += .001
+        // console.log(test)
         let triArr = trilaterationCalculations(a, b, c);
         
-        // Add position to buffer
-        positionBuffer.push({x: triArr.x, y: triArr.y});
+        const filteredPosition = kalmanFilterPosition(triArr);
+        // const filteredPosition = triArr;
+        filteredPosition.id = 1;
+        console.log('Filtered Position:', filteredPosition.x, filteredPosition.y);
         
-        // Maintain buffer size
-        if (positionBuffer.length > bufferSize) {
-          positionBuffer.shift();
-        }
-        
-        // Calculate moving average if we have enough points
-        if (positionBuffer.length > 5) {
-          const avgX = positionBuffer.reduce((acc, pos) => acc + pos.x, 0) / positionBuffer.length;
-          const avgY = positionBuffer.reduce((acc, pos) => acc + pos.y, 0) / positionBuffer.length;
-          
-          // Convert to inches with correct factor (39.3701 in/m)
-          console.log(avgX * 39.3701, avgY * 39.3701);
-          
-          // Send the smoothed position to the renderer
-          win.webContents.send('update-position', {x: avgX, y: avgY, id: 1});
+        const DISTANCE_THRESHOLD = .02; // Adjust this threshold as needed
+        const INTERPOLATION_STEPS = 50; // Number of interpolated positions
+
+        if (lastFilteredPosition) {
+          const distance = getDistance(filteredPosition, lastFilteredPosition);
+          // console.log('Distance:', distance);
+
+          if (distance > DISTANCE_THRESHOLD) {
+            console.log('Distance exceeded threshold:', distance);
+            // Send original position
+            win.webContents.send('update-position', lastFilteredPosition);
+            
+            // Send interpolated positions
+            for (let i = 1; i <= INTERPOLATION_STEPS; i++) {
+              const t = i / (INTERPOLATION_STEPS + 1);
+              const interpolated = interpolatePosition(lastFilteredPosition, filteredPosition, t);
+              win.webContents.send('update-position', interpolated,);
+            }
+            
+            // Send final position
+            win.webContents.send('update-position', filteredPosition);
+          } else {
+            // Just send the filtered position if within threshold
+            win.webContents.send('update-position', filteredPosition);
+          }
         } else {
-          // If we don't have enough points yet, still display raw data
-          // console.log(triArr.x * 39.3701, triArr.y * 39.3701);
-          // win.webContents.send('update-position', {x: triArr.x, y: triArr.y, id: 1});
+          // First position, just send it
+          win.webContents.send('update-position', filteredPosition);
         }
-        
-        // Reset distance measurements to wait for next complete set
+
+        win.webContents.send('update-position', {
+          x: 0,
+          y: 0,
+          id: 2
+        });
+        win.webContents.send('update-position', {
+          x: 4.24,
+          y: 2.59,
+          id: 3
+        });
+        win.webContents.send('update-position', {
+          x: 0,
+          y: 5.664,
+          id: 4
+        });
+
+
+        lastFilteredPosition = {...filteredPosition};
         a = 0;
-        b = 0;
+        b = 0; 
         c = 0;
       }
       // console.log('Parsed line:', arr[0], arr[1], arr[2])
@@ -170,7 +230,9 @@ app.whenReady().then(() => {
   console.log('window created')
 
   // Initialize serial connection after window is created
-  initSerialConnection(win)
+  
+  console.log("Before initSerialConnection")
+  attemptSerialConnection(win);
 
   ipcMain.handle('serial-status', () => {
     return serialConnection && serialConnection.isOpen
@@ -190,3 +252,21 @@ app.on('window-all-closed', () => {
 
   if (process.platform !== 'darwin') app.quit()
 })
+
+const MAX_RETRIES = 10;
+const RETRY_DELAY = 2000; // 2 seconds
+
+function attemptSerialConnection(win, retryCount = 0) {
+  const success = initSerialConnection(win);
+  
+  if (!success && retryCount < MAX_RETRIES) {
+    console.log(`Connection failed, retrying in ${RETRY_DELAY/1000} seconds...`);
+    setTimeout(() => {
+      attemptSerialConnection(win, retryCount + 1);
+    }, RETRY_DELAY);
+  } else if (!success) {
+    console.error('Max retry attempts reached. Serial connection failed.');
+  } else {
+    console.log('Serial connection established successfully');
+  }
+}

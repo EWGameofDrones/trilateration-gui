@@ -39,8 +39,10 @@ export const CageGraph: Component<{
   const droneProportion = 0.05 // percent of the cage width that a drone icon should occupy
 
   // dimensions of the cage in feet
-  const [cageWidth] = createSignal(4.24)
-  const [cageLength] = createSignal(5.664)
+  // const [cageWidth] = createSignal(4.24)
+  const [cageWidth] = createSignal(5.664)
+  // const [cageLength] = createSignal(5.664)
+  const [cageLength] = createSignal(4.24)
 
   // holds available size for the graphic
   const [graphicHeight, setGraphicHeight] = createSignal<number>(100)
