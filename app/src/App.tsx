@@ -2,6 +2,7 @@ import { Component, createSignal } from 'solid-js'
 import './App.css'
 import { CageGraph } from './components/CageGraph'
 import { parsePacket } from './electronInteraction/handlePacket'
+import { PathManager } from './components/PathManager'
 
 const App: Component<{}> = () => {
   if (window.electronAPI !== undefined) {
@@ -25,17 +26,19 @@ const App: Component<{}> = () => {
 
   return (
     <div class="w-screen flex flex-col h-screen">
-      <CageGraph showPaths={showPaths} />
+      <PathManager>
+        <CageGraph showPaths={showPaths} />
 
-      <button
-        ref={buttonRef}
-        class="m-4 bg-violet-950 border-[1px] border-white rounded-md p-2"
-        onClick={() => {
-          setShowPaths((prev) => !prev)
-        }}
-      >
-        Path Visibility: {showPaths() ? 'Visible' : 'Hidden'}
-      </button>
+        <button
+          ref={buttonRef}
+          class="m-4 bg-violet-950 border-[1px] border-white rounded-md p-2"
+          onClick={() => {
+            setShowPaths((prev) => !prev)
+          }}
+        >
+          Path Visibility: {showPaths() ? 'Visible' : 'Hidden'}
+        </button>
+      </PathManager>
     </div>
   )
 }

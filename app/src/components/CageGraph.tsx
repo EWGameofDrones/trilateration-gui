@@ -14,9 +14,12 @@ import {
   createSignal,
   onCleanup,
   onMount,
+  Show,
 } from 'solid-js'
 import { CageLines } from './CageLines'
 import { DroneDisplay } from './DroneDisplay'
+import { PathsDisplay } from './PathsDisplay'
+import { parsePacket } from '../electronInteraction/handlePacket'
 
 // renders the grid display as well as the markers on it
 export const CageGraph: Component<{
@@ -156,7 +159,6 @@ export const CageGraph: Component<{
             ref={bottomAxis}
             transform={`translate(0, ${axisSize().bottom})`}
           />
-
           <CageLines
             xScale={getXScale()}
             yScale={getYScale()}
@@ -165,8 +167,13 @@ export const CageGraph: Component<{
             xScale={getXScale()}
             yScale={getYScale()}
             droneSize={droneProportion * getYScale().range()[1]}
-            showPaths={props.showPaths()}
           />
+          <Show when={props.showPaths() === true}>
+            <PathsDisplay
+              xScale={getXScale()}
+              yScale={getYScale()}
+            />
+          </Show>
         </svg>
       </div>
     </>

@@ -1,12 +1,12 @@
 import { easeQuadInOut, ScaleLinear } from 'd3'
-import { Component, For, getOwner, Show } from 'solid-js'
+import { Component, For, getOwner, useContext } from 'solid-js'
 import {
   PositionPacket,
   registerPacketHandler,
 } from '../electronInteraction/handlePacket'
 import droneIcon from '../assets/drone-svgrepo-com.svg?url'
-import { createStore, produce, unwrap } from 'solid-js/store'
-import { PathDisplay } from './PathDisplay'
+import { createStore, unwrap } from 'solid-js/store'
+import { PathContext } from '../contexts/PathContext'
 
 // used to represent the state of a drone graphic
 type DroneState = {
@@ -31,18 +31,12 @@ type DroneState = {
   y: number
   // 0-1 | completeness of movement animation
   animationProgress: number
-  // stores the drone's path over the course of the game
-  path: {
-    x: number
-    y: number
-  }[]
 }
 
 export const DroneDisplay: Component<{
   xScale: ScaleLinear<number, number, never>
   yScale: ScaleLinear<number, number, never>
   droneSize: number
-  showPaths: boolean
 }> = (props) => {
   // track the state of each drone graphic seperately
   const [droneStates, setDroneStates] = createStore<Record<number, DroneState>>(
@@ -52,9 +46,13 @@ export const DroneDisplay: Component<{
   const moveRate = 0.25 // time it takes in seconds for a drone icon to move
   const fpsCap = 60 // maximum amount of frames per second to allow resource allocation for
 
-  // the smallest distance in feet away from the last path node
-  // for which a new path node will be generated
-  const pathResolution = 1
+  // facilitates the path manager seeing the drones' positions
+  const pathContext = useContext(PathContext)
+  if (pathContext === undefined)
+    throw new Error(
+      'The DroneDisplay component must be used ' +
+        'within a PathContext.Provider component!'
+    )
 
   // if the animation is done and there is a move in the queue,
   // start an animation to move toward it
@@ -134,40 +132,11 @@ export const DroneDisplay: Component<{
     // animation is over. previous target position is now the origin position
     setDroneStates(id, 'originPos', structuredClone(unwrap(state.targetPos)))
 
+    // track the position for the purposes of making paths
+    pathContext?.setDronePositions(id, droneStates[id].originPos)
+
     // check to see if there is a move queued
     checkForNewMove(id)
-  }
-
-  // record flight paths of a drone
-  async function trackPath(id: number) {
-    if (!(id in droneStates)) return
-    const state = droneStates[id]
-
-    while (true) {
-      const lastPathNode = state.path[state.path.length - 1]
-
-      // if the drone has moved far enough away from the last path
-      // point, add a new one
-      if (
-        Math.sqrt(
-          Math.pow(state.x - lastPathNode.x, 2) +
-            Math.pow(state.y - lastPathNode.y, 2)
-        ) >= pathResolution
-      ) {
-        setDroneStates(
-          id,
-          'path',
-          produce((prev) =>
-            prev.push({ x: unwrap(state.x), y: unwrap(state.y) })
-          )
-        )
-      }
-
-      // wait to avoid going over the fps cap
-      await new Promise<void>((resolve) =>
-        setTimeout(() => resolve(), 1000 / fpsCap)
-      )
-    }
   }
 
   // set the drone graphics' states based on packets received from the main electron proccess
@@ -182,9 +151,13 @@ export const DroneDisplay: Component<{
         queuedPos: { x: move.x, y: move.y },
         x: move.x,
         y: move.y,
-        path: [{ x: move.x, y: move.y }],
       })
-      trackPath(move.id)
+
+      // allow the path tracking functionality to see the drone's position
+      // createEffect(() =>
+      //   pathContext.setDronePositions(move.id, { x: move.x, y: move.y })
+      // )
+
       return
     }
 
@@ -197,7 +170,7 @@ export const DroneDisplay: Component<{
   return (
     <>
       <For each={Object.values(droneStates)}>
-        {(state, index) => (
+        {(state) => (
           <>
             {/* icon */}
             <image
@@ -208,15 +181,6 @@ export const DroneDisplay: Component<{
               y={Math.floor(props.yScale(state.y) - 0.5 * props.droneSize)}
               filter="invert(100%)"
             />
-            {/* path */}
-            <Show when={props.showPaths === true}>
-              <PathDisplay
-                xScale={props.xScale}
-                yScale={props.yScale}
-                path={state.path}
-                index={index()}
-              />
-            </Show>
           </>
         )}
       </For>

@@ -2,15 +2,6 @@ import { ScaleLinear } from 'd3'
 import { Component, createMemo, mapArray } from 'solid-js'
 import { clamp } from '../util/clamp'
 
-// colors for different drones
-const pathColors = [
-  'rgb(194,0,251)',
-  'rgb(236,8,104)',
-  'rgb(252,47,0)',
-  'rgb(236,125,16)',
-  'rgb(255,188,10)',
-]
-
 // given two points, get info about the line between them
 function getLine(
   point1: {
@@ -38,7 +29,7 @@ export const PathDisplay: Component<{
   }[]
   xScale: ScaleLinear<number, number, never>
   yScale: ScaleLinear<number, number, never>
-  index: number
+  color: string
 }> = (props) => {
   // arbitrary for controlling smoothing of bezier control points
   const smoothingFactor = 0.2
@@ -136,7 +127,7 @@ export const PathDisplay: Component<{
         d={pathInstructions()
           .map((memo) => memo())
           .join('\n')}
-        stroke={pathColors[props.index % pathColors.length]}
+        stroke={props.color}
         stroke-width="2"
         fill-opacity="0"
       />
