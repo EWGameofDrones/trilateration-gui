@@ -106,18 +106,23 @@ export const PathDisplay: Component<{
 
       // memoize it so paths are recalculated if the
       // scale changes
-      const getInstruction = createMemo(
-        // generate the curve instruction
-        () =>
-          `C ${props.xScale(startControl.x)} ${props.yScale(
-            startControl.y
-          )} ${props.xScale(endControl.x)} ${props.yScale(
-            endControl.y
-          )} ${props.xScale(point.x)} ${props.yScale(point.y)}`
+      // currently unused, but still exists incase is wanted in future
+      // const getCurveInstruction = createMemo(
+      //   // generate the curve instruction
+      //   () =>
+      //     `C ${props.xScale(startControl.x)} ${props.yScale(
+      //       startControl.y
+      //     )} ${props.xScale(endControl.x)} ${props.yScale(
+      //       endControl.y
+      //     )} ${props.xScale(point.x)} ${props.yScale(point.y)}`
+      // )
+
+      const getLineInstruction = createMemo(
+        () => `L ${props.xScale(point.x)} ${props.yScale(point.y)} `
       )
 
       // return the memo
-      return getInstruction
+      return getLineInstruction
     }
   )
 
