@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog } from 'electron'
 import path, { dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { SerialPort } from 'serialport'
@@ -77,11 +77,22 @@ const createWindow = () => {
     },
   })
 
-  ipcMain.on('export-paths', (event, paths) => {
-    writeFileSync(
-      path.join(app.getPath('temp'), 'paths.json'),
-      JSON.stringify(paths)
-    )
+  // export paths to json file for use later
+  ipcMain.on('export-paths', async (event, paths) => {
+    // open a dialog for the user to pick a file path to save to
+    const { filePath, canceled } = dialog.showSaveDialog(win, {
+      title: 'Export Path',
+      defaultPath: path.join(app.getPath('documents'), 'paths.json'),
+      filters: [
+        { name: 'JSON Files', extensions: ['json'] },
+        { name: 'All Files', extensions: ['*'] },
+      ],
+    })
+
+    // if we have a good path, save the paths there as json
+    if (!canceled && filePath) {
+      writeFileSync(filePath, JSON.stringify(paths, null, 2), 'utf-8')
+    }
   })
 
   if (isDev) {
