@@ -33,7 +33,7 @@ const App: Component<{}> = () => {
 
         <button
           ref={buttonRef}
-          class="mx-4 mt-4 mb-2 bg-violet-950 border-[1px] border-white rounded-md p-2"
+          class="mx-4 mt-4 mb-2 cursor-pointer bg-violet-950 hover:bg-violet-700 active:bg-violet-500 border-[1px] border-white rounded-md p-2"
           onClick={() => {
             setShowPaths((prev) => !prev)
           }}
