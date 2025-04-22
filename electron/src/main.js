@@ -126,7 +126,7 @@ const importPaths = async (event) => {
 
   // if a path was selected, read it and return it back to the renderer
   if (!canceled && filePaths.length > 0) {
-    return JSON.parse(readFileSync(filePaths[0], 'utf-8'))
+    return readFileSync(filePaths[0], 'utf-8')
   }
 }
 

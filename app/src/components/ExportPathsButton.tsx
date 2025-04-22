@@ -3,7 +3,7 @@ import { PathContext } from '../contexts/PathContext'
 import { unwrap } from 'solid-js/store'
 
 // button for exporting drone paths to a file
-export const ExportPathsButton: Component<{}> = (props) => {
+export const ExportPathsButton: Component<{}> = () => {
   // we need access to path data to export
   const pathContext = useContext(PathContext)
   if (pathContext === undefined) throw new Error('Unable to load path context.')

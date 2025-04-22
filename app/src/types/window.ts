@@ -11,7 +11,7 @@ declare global {
           }[]
         >
       ) => unknown
-      importPaths: () => Promise<object>
+      importPaths: () => Promise<string>
     }
   }
 }
