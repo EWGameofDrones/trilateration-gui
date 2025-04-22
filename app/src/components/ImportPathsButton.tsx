@@ -17,7 +17,6 @@ export const ImportPathsButton: Component<{}> = () => {
   if (pathContext === undefined) throw new Error('Could not load path context.')
 
   const onClick = async () => {
-    console.log(await window.electronAPI?.importPaths())
     const paths = pathsSchema.parse(await window.electronAPI?.importPaths())
     pathContext.setPaths(paths)
   }

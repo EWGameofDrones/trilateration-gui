@@ -108,8 +108,26 @@ const createWindow = () => {
   }
 }
 
-const importPaths = () => {
-  return JSON.parse(readFileSync(path.join(app.getPath('temp'), 'paths.json')))
+// handler for when renderer requests to import paths
+const importPaths = async (event) => {
+  // get a reference to the window invoking this
+  const win = BrowserWindow.fromWebContents(event.sender)
+
+  // open a dialog to select the path to load in
+  const { filePaths, canceled } = await dialog.showOpenDialog(win, {
+    title: 'Import Paths',
+    defaultPath: app.getPath('documents'),
+    filters: [
+      { name: 'JSON Files', extensions: ['json'] },
+      { name: 'All Files', extensions: ['*'] },
+    ],
+    properties: ['openFile'],
+  })
+
+  // if a path was selected, read it and return it back to the renderer
+  if (!canceled && filePaths.length > 0) {
+    return JSON.parse(readFileSync(filePaths[0], 'utf-8'))
+  }
 }
 
 // wait until electronjs is ready before some operations
