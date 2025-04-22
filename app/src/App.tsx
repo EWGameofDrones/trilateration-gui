@@ -5,6 +5,7 @@ import { parsePacket } from './electronInteraction/handlePacket'
 import { PathManager } from './components/PathManager'
 import { ExportPathsButton } from './components/ExportPathsButton'
 import { ImportPathsButton } from './components/ImportPathsButton'
+import { ClearPathsButton } from './components/ClearPathsButton'
 
 const App: Component<{}> = () => {
   if (window.electronAPI !== undefined) {
@@ -41,6 +42,7 @@ const App: Component<{}> = () => {
           Path Visibility: {showPaths() ? 'Visible' : 'Hidden'}
         </button>
         <div class="flex">
+          <ClearPathsButton />
           <ExportPathsButton />
           <ImportPathsButton />
         </div>
