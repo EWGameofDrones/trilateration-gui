@@ -13,7 +13,7 @@ export const PathManager: Component<{
         y: number
       }[]
     >
-  >([])
+  >({})
   const [dronePositions, setDronePositions] = createStore<
     Record<
       number,
@@ -22,7 +22,7 @@ export const PathManager: Component<{
         y: number
       }
     >
-  >([])
+  >({})
 
   // the smallest distance in feet away from the last path node
   // for which a new path node will be generated

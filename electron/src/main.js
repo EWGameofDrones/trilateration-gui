@@ -3,6 +3,7 @@ import path, { dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { SerialPort } from 'serialport'
 import { ReadlineParser } from '@serialport/parser-readline'
+import { readFileSync, writeFileSync } from 'fs'
 
 // get file structure information for accessing required files
 const fileName = fileURLToPath(import.meta.url)
@@ -76,6 +77,13 @@ const createWindow = () => {
     },
   })
 
+  ipcMain.on('export-paths', (event, paths) => {
+    writeFileSync(
+      path.join(app.getPath('temp'), 'paths.json'),
+      JSON.stringify(paths)
+    )
+  })
+
   if (isDev) {
     // if we are in dev mode, instead of loading the static files, load the url we are expecting
     // vite to be hosting the webpage at.
@@ -89,8 +97,13 @@ const createWindow = () => {
   }
 }
 
+const importPaths = () => {
+  return JSON.parse(readFileSync(path.join(app.getPath('temp'), 'paths.json')))
+}
+
 // wait until electronjs is ready before some operations
 app.whenReady().then(() => {
+  ipcMain.handle('import-paths', importPaths)
   createWindow()
   console.log('window created')
 

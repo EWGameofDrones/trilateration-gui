@@ -8,4 +8,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // where <win> is the window and <packet> is the packet object
   onPositionUpdate: (callback) =>
     ipcRenderer.on('update-position', (_, value) => callback(value)),
+
+  exportPaths: (paths) => ipcRenderer.send('export-paths', paths),
+
+  importPaths: (paths) => ipcRenderer.invoke('import-paths'),
 })

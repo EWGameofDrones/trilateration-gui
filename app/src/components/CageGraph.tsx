@@ -135,6 +135,23 @@ export const CageGraph: Component<{
     window.removeEventListener('resize', handleResize)
   })
 
+  async function demoPaths() {
+    while (true) {
+      parsePacket({
+        x: Math.random() * cageLength(),
+        y: Math.random() * cageWidth(),
+        id: 1,
+      })
+      parsePacket({
+        x: Math.random() * cageLength(),
+        y: Math.random() * cageWidth(),
+        id: 2,
+      })
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+    }
+  }
+  demoPaths()
+
   return (
     <>
       <div
