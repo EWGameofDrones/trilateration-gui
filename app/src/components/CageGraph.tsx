@@ -150,7 +150,7 @@ export const CageGraph: Component<{
       await new Promise((resolve) => setTimeout(resolve, 1000))
     }
   }
-  demoPaths()
+  // demoPaths()
 
   return (
     <>
