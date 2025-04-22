@@ -153,11 +153,7 @@ export const DroneDisplay: Component<{
         y: move.y,
       })
 
-      // allow the path tracking functionality to see the drone's position
-      // createEffect(() =>
-      //   pathContext.setDronePositions(move.id, { x: move.x, y: move.y })
-      // )
-
+      pathContext.setDronePositions(move.id, droneStates[move.id].originPos)
       return
     }
 
