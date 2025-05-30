@@ -4,8 +4,8 @@ import * as math from 'mathjs';
 export function trilaterationCalculations(r1, r2, r3) {
     // const [A1, A2, A3] = anchors; // Unpack anchor positions
     const [x1, y1] = [0, 0];
-    const [x2, y2] = [4.24, 2.59]; // 3.22, 3.502
-    const [x3, y3] = [0, 5.664]; // 5.876, 1.193
+    const [x2, y2] = [7, 0]; // 3.22, 3.502
+    const [x3, y3] = [5.5, 13.416]; // 5.876, 1.193
 
     // Solve for x and y using two equations
     const A = 2 * (x2 - x1);
@@ -35,9 +35,9 @@ const kalmanState = {
     // State covariance matrix
     P: math.diag([100, 100, 10, 10]),
     // Process noise (adjust these to tune filter)
-    Q: math.diag([0.001, 0.001, 0.1, 0.1]),
+    Q: math.diag([0.0001, 0.0001, 0.01, 0.01]),
     // Measurement noise (adjust these to tune filter)
-    R: math.diag([1, 1]),
+    R: math.diag([10, 10]),
     // Measurement matrix (we only measure position)
     H: math.matrix([[1, 0, 0, 0], [0, 1, 0, 0]]),
     // Time of last update
@@ -103,6 +103,45 @@ function kalmanUpdate(measurement) {
     kalmanState.P = math.multiply(IminusKH, kalmanState.P);
 }
 
+const smoothedPositions = {};
+
+/**
+ * Apply Exponential Moving Average filter to position data
+ * @param {Object} triArr - The trilateration result with x, y coordinates
+ * @param {number} id - The ID of the drone/responder
+ * @param {number} alpha - Smoothing factor (lower = more smoothing)
+ * @returns {Object} Smoothed position
+ */
+export function EMA(triArr, id, alpha = 0.2) {
+    // Create object if it doesn't exist for this ID
+    if (!smoothedPositions[id]) {
+        smoothedPositions[id] = {
+            x: triArr.x,
+            y: triArr.y,
+            z1: triArr.z1,
+            z2: triArr.z2,
+        };
+    }
+
+    // Apply EMA formula
+    smoothedPositions[id].x = alpha * triArr.x + (1 - alpha) * smoothedPositions[id].x;
+    smoothedPositions[id].y = alpha * triArr.y + (1 - alpha) * smoothedPositions[id].y;
+    
+    // If z values exist in the input, smooth them too
+    if (triArr.z1 !== undefined) {
+        smoothedPositions[id].z1 = alpha * triArr.z1 + (1 - alpha) * smoothedPositions[id].z1;
+        smoothedPositions[id].z2 = alpha * triArr.z2 + (1 - alpha) * smoothedPositions[id].z2;
+    }
+    
+    // Return a copy of the smoothed position with the ID
+    return {
+        x: smoothedPositions[id].x,
+        y: smoothedPositions[id].y,
+        z1: smoothedPositions[id].z1,
+        z2: smoothedPositions[id].z2,
+        id: id
+    };
+}
 /**
  * Process a new trilateration result through the Kalman filter
  * @param {Object} trilaterationResult - Result from trilaterationCalculations
@@ -146,14 +185,3 @@ export function kalmanFilterPosition(trilaterationResult) {
         vy: stateArray[3]
     };
 }
-
-/**
- * Reset the Kalman filter state
- */
-export function resetKalmanFilter() {
-    kalmanState.x = math.matrix([0, 0, 0, 0]);
-    kalmanState.P = math.diag([100, 100, 10, 10]);
-    kalmanState.lastTime = null;
-    kalmanState.initialized = false;
-}
-

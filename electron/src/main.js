@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url'
 import { SerialPort } from 'serialport'
 import { ReadlineParser } from '@serialport/parser-readline'
 import { trilaterationCalculations, kalmanFilterPosition } from '../util/calculations.js'
+import { EMA } from '../util/calculations.js'
 import { Worker, isMainThread, parentPort } from 'worker_threads'
 import * as math from 'mathjs';
 // const fs = require('fs');
@@ -58,7 +59,7 @@ let test = {x: 0, y: 0, id: 1};
 function initSerialConnection(win) {
   console.log('initSerialConnection')
   try {
-    const serialPath = process.platform === 'win32' ? 'COM3' : '/dev/ttyACM0' // Windows path vs Linux path
+    const serialPath = process.platform === 'win32' ? 'COM3' : '/dev/ttyACM5' // Windows path vs Linux path
 
     // Check if serialPath exists
     if (!fs.existsSync(serialPath)) {
@@ -92,10 +93,21 @@ function initSerialConnection(win) {
     let aDeque = [];
     let bDeque = [];
     let cDeque = [];
+
+    let AA = 0
+    let AB = 0
+    let BA = 0
+    let BB = 0
+    let CA = 0
+    let CB = 0
+
+    let smoothedA = null;
+    let smoothedB = null;
     console.log("TRY1")
 
     parser.on('data', (line) => {
       let arr = line.split(' ')
+      console.log(arr);
       if (arr[0] == "A") { 
         a = parseFloat(arr[1])
         // aDeque.push(arr[1])
@@ -109,69 +121,95 @@ function initSerialConnection(win) {
         // cDeque.push(arr[1])
       }
 
-      
-      if (a != 0 && b != 0 && c != 0) {
-        test.x += .001
-        // console.log(test)
-        let triArr = trilaterationCalculations(a, b, c);
-        
-        const filteredPosition = kalmanFilterPosition(triArr);
-        // const filteredPosition = triArr;
-        filteredPosition.id = 1;
-        console.log('Filtered Position:', filteredPosition.x, filteredPosition.y);
-        
-        const DISTANCE_THRESHOLD = .02; // Adjust this threshold as needed
-        const INTERPOLATION_STEPS = 50; // Number of interpolated positions
+      if (arr[3] == "A") {
+        let distance = parseFloat(arr[1]);
+        if (distance > 15) {
+          console.log("Distance is too far");
+          return;
+        }
+        distance = distance * 3.28084; // Convert meters to feet
+        // console.log(`Distance in feet: ${distance}`);
 
-        if (lastFilteredPosition) {
-          const distance = getDistance(filteredPosition, lastFilteredPosition);
-          // console.log('Distance:', distance);
-
-          if (distance > DISTANCE_THRESHOLD) {
-            console.log('Distance exceeded threshold:', distance);
-            // Send original position
-            win.webContents.send('update-position', lastFilteredPosition);
-            
-            // Send interpolated positions
-            for (let i = 1; i <= INTERPOLATION_STEPS; i++) {
-              const t = i / (INTERPOLATION_STEPS + 1);
-              const interpolated = interpolatePosition(lastFilteredPosition, filteredPosition, t);
-              win.webContents.send('update-position', interpolated,);
-            }
-            
-            // Send final position
-            win.webContents.send('update-position', filteredPosition);
-          } else {
-            // Just send the filtered position if within threshold
-            win.webContents.send('update-position', filteredPosition);
-          }
-        } else {
-          // First position, just send it
-          win.webContents.send('update-position', filteredPosition);
+        if (arr[0] == "A") {
+          AA = distance
+        }
+        else if (arr[0] == "B") {
+          BA = distance
+        }
+        else if (arr[0] == "C") {
+          CA = distance
+        }
+      }
+      else if (arr[3] == "B") {
+        let distance = parseFloat(arr[1]);
+        distance = distance * 3.28084; // Convert meters to feet
+        // console.log(`Distance in feet: ${distance}`);
+        if (distance > 15) {
+          console.log("Distance is too far: ", distance);
+          return;
         }
 
-        win.webContents.send('update-position', {
-          x: 0,
-          y: 0,
-          id: 2
-        });
-        win.webContents.send('update-position', {
-          x: 4.24,
-          y: 2.59,
-          id: 3
-        });
-        win.webContents.send('update-position', {
-          x: 0,
-          y: 5.664,
-          id: 4
-        });
-
-
-        lastFilteredPosition = {...filteredPosition};
-        a = 0;
-        b = 0; 
-        c = 0;
+        if (arr[0] == "A") {
+          AB = distance
+        }
+        else if (arr[0] == "B") {
+          BB = distance
+        }
+        else if (arr[0] == "C") {
+          CB = distance
+        }
       }
+
+      a = 0
+
+      if (AA != 0 && BA != 0 && CA != 0) {
+        let triArr = trilaterationCalculations(AA, BA, CA);
+        console.log("triArr: ", triArr);
+
+        // win.webContents.send('update-position', slidingWindow(1, triArr));
+        
+        const filteredPosition = EMA(triArr, 1);
+        console.log('Filtered Position: ', filteredPosition);
+        filteredPosition.id = 1;
+
+        win.webContents.send('update-position', filteredPosition);
+        AA = 0
+        BA = 0
+        CA = 0
+      }
+      if (AB != 0 && BB != 0 && CB != 0) {
+        let triArr = trilaterationCalculations(AB, BB, CB);
+        console.log("triArr: ", triArr);
+
+        // win.webContents.send('update-position', slidingWindow(2, triArr));
+        
+        const filteredPosition = EMA(triArr, 2);
+        console.log('Filtered Position:', filteredPosition);
+        filteredPosition.id = 2;
+        // filteredPosition.x += 1;
+
+        win.webContents.send('update-position', filteredPosition);
+        AB = 0
+        BB = 0
+        CB = 0
+      }
+
+      win.webContents.send('update-position', {
+        x: 0,
+        y: 0,
+        id: 3
+      });
+      win.webContents.send('update-position', {
+        x: 7,
+        y: 0,
+        id: 4
+      });
+      win.webContents.send('update-position', {
+        x: 5.5,
+        y: 13.416,
+        id: 5
+      });
+      
       // console.log('Parsed line:', arr[0], arr[1], arr[2])
     })
 

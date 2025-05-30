@@ -40,9 +40,9 @@ export const CageGraph: Component<{
 
   // dimensions of the cage in feet
   // const [cageWidth] = createSignal(4.24)
-  const [cageWidth] = createSignal(5.664)
+  const [cageWidth] = createSignal(13.416)
   // const [cageLength] = createSignal(5.664)
-  const [cageLength] = createSignal(4.24)
+  const [cageLength] = createSignal(7)
 
   // holds available size for the graphic
   const [graphicHeight, setGraphicHeight] = createSignal<number>(100)
@@ -51,25 +51,25 @@ export const CageGraph: Component<{
   const axisSize = createMemo(() => {
     // calculate the size of the axes in order to maintain a 1:1 ratio while
     // taking up as much space as possible
-    let axisWidth: number
-    let axisHeight: number
-    if (graphicWidth() / graphicHeight() > cageLength() / cageWidth()) {
-      // if the container's width is the constraining dimension, use that
-      //   as the base for the axes height
-      // subtract the gaps in the corners to avoid the axis hitting the edge of
-      //   available space
-      axisHeight = graphicHeight() - 2 * (cornerGap + sideGap)
-      // maintain 1:1
-      axisWidth = cageLength() * (axisHeight / cageWidth())
-    } else {
-      // if the container's height is the constraining dimension, use that
-      //   as the base for the axes width
-      // subtract the gaps in the corners to avoid the axis hitting the edge of
-      //   available space
-      axisWidth = graphicWidth() - 2 * (cornerGap + sideGap)
-      // maintain 1:1
-      axisHeight = cageWidth() * (axisWidth / cageLength())
-    }
+    const axisWidth = graphicWidth() - 2 * (cornerGap + sideGap)
+    const axisHeight = graphicHeight() - 2 * (cornerGap + sideGap)
+    // if (graphicWidth() / graphicHeight() > cageLength() / cageWidth()) {
+    //   // if the container's width is the constraining dimension, use that
+    //   //   as the base for the axes height
+    //   // subtract the gaps in the corners to avoid the axis hitting the edge of
+    //   //   available space
+    //   axisHeight = graphicHeight() - 2 * (cornerGap + sideGap)
+    //   // maintain 1:1
+    //   axisWidth = cageLength() * (axisHeight / cageWidth())
+    // } else {
+    //   // if the container's height is the constraining dimension, use that
+    //   //   as the base for the axes width
+    //   // subtract the gaps in the corners to avoid the axis hitting the edge of
+    //   //   available space
+    //   axisWidth = graphicWidth() - 2 * (cornerGap + sideGap)
+    //   // maintain 1:1
+    //   axisHeight = cageWidth() * (axisWidth / cageLength())
+    // }
 
     return {
       x: axisWidth,
