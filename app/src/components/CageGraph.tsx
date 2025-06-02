@@ -21,6 +21,9 @@ import { DroneDisplay } from './DroneDisplay'
 // renders the grid display as well as the markers on it
 export const CageGraph: Component<{
   showPaths: Accessor<boolean>
+  cageWidth: Accessor<number>
+  cageLength: Accessor<number>
+  anchors?: number[][]
 }> = (props) => {
   // references to each axis graphic
   // used to update axes on changed data
@@ -53,23 +56,6 @@ export const CageGraph: Component<{
     // taking up as much space as possible
     const axisWidth = graphicWidth() - 2 * (cornerGap + sideGap)
     const axisHeight = graphicHeight() - 2 * (cornerGap + sideGap)
-    // if (graphicWidth() / graphicHeight() > cageLength() / cageWidth()) {
-    //   // if the container's width is the constraining dimension, use that
-    //   //   as the base for the axes height
-    //   // subtract the gaps in the corners to avoid the axis hitting the edge of
-    //   //   available space
-    //   axisHeight = graphicHeight() - 2 * (cornerGap + sideGap)
-    //   // maintain 1:1
-    //   axisWidth = cageLength() * (axisHeight / cageWidth())
-    // } else {
-    //   // if the container's height is the constraining dimension, use that
-    //   //   as the base for the axes width
-    //   // subtract the gaps in the corners to avoid the axis hitting the edge of
-    //   //   available space
-    //   axisWidth = graphicWidth() - 2 * (cornerGap + sideGap)
-    //   // maintain 1:1
-    //   axisHeight = cageWidth() * (axisWidth / cageLength())
-    // }
 
     return {
       x: axisWidth,
@@ -84,7 +70,7 @@ export const CageGraph: Component<{
   // screen size (pixels)
   const getXScale = createMemo(() =>
     scaleLinear(
-      [0, cageLength()],
+      [0, props.cageLength()],
       [sideGap + cornerGap, sideGap + cornerGap + axisSize().x]
     )
   )
@@ -93,7 +79,7 @@ export const CageGraph: Component<{
   // screen size (pixels)
   const getYScale = createMemo(() =>
     scaleLinear(
-      [0, cageWidth()],
+      [0, props.cageWidth()],
       [sideGap + cornerGap, sideGap + cornerGap + axisSize().y]
     )
   )
@@ -107,10 +93,10 @@ export const CageGraph: Component<{
       bottomAxis !== undefined
     ) {
       // have d3 render the axes
-      select(leftAxis).call(axisLeft(getYScale()).ticks(cageWidth() / 5))
-      select(rightAxis).call(axisRight(getYScale()).ticks(cageWidth() / 5))
-      select(topAxis).call(axisTop(getXScale()).ticks(cageLength() / 5))
-      select(bottomAxis).call(axisBottom(getXScale()).ticks(cageLength() / 5))
+      select(leftAxis).call(axisLeft(getYScale()).ticks(props.cageWidth() / 5))
+      select(rightAxis).call(axisRight(getYScale()).ticks(props.cageWidth() / 5))
+      select(topAxis).call(axisTop(getXScale()).ticks(props.cageLength() / 5))
+      select(bottomAxis).call(axisBottom(getXScale()).ticks(props.cageLength() / 5))
     } else {
       console.warn('Could not load axis!')
     }

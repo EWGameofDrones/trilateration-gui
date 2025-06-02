@@ -1,31 +1,86 @@
 import * as math from 'mathjs';
 
-// Original trilateration function
-export function trilaterationCalculations(r1, r2, r3) {
-    // const [A1, A2, A3] = anchors; // Unpack anchor positions
-    const [x1, y1] = [0, 0];
-    const [x2, y2] = [7, 0]; // 3.22, 3.502
-    const [x3, y3] = [5.5, 13.416]; // 5.876, 1.193
+// Updated trilateration function
+export function trilaterationCalculations(r1, r2, r3, anchors) {
+    // Use provided anchors or default values
+    const [[x1, y1, z1], [x2, y2, z2], [x3, y3, z3]] = anchors || [
+        [0, 0, 0],
+        [7, 0, 0],
+        [5.5, 13.416, 0]
+    ];
 
-    // Solve for x and y using two equations
+    // Solve using the system of equations for 3D trilateration
     const A = 2 * (x2 - x1);
     const B = 2 * (y2 - y1);
+    const C = 2 * (z2 - z1);
     const D = 2 * (x3 - x1);
     const E = 2 * (y3 - y1);
+    const F = 2 * (z3 - z1);
 
-    const C = r1 ** 2 - r2 ** 2 - x1 ** 2 - y1 ** 2 + x2 ** 2 + y2 ** 2;
-    const F = r1 ** 2 - r3 ** 2 - x1 ** 2 - y1 ** 2 + x3 ** 2 + y3 ** 2;
+    const G = r1 * r1 - r2 * r2 - x1 * x1 - y1 * y1 - z1 * z1 + x2 * x2 + y2 * y2 + z2 * z2;
+    const H = r1 * r1 - r3 * r3 - x1 * x1 - y1 * y1 - z1 * z1 + x3 * x3 + y3 * y3 + z3 * z3;
 
-    // Solve for x and y
-    const y = (C * D - A * F) / (B * D - A * E);
-    const x = (C - B * y) / A;
+    // If all anchors are in a plane (z coordinates are the same), use the simpler 2D approach
+    if (Math.abs(C) < 1e-10 && Math.abs(F) < 1e-10) {
+        // This is the existing 2D case
+        const y = (G * D - A * H) / (B * D - A * E);
+        const x = (G - B * y) / A;
+        
+        // Calculate z from the first sphere equation
+        const zSquared = r1 * r1 - (x - x1) * (x - x1) - (y - y1) * (y - y1);
+        const z = Math.sqrt(Math.max(0, zSquared)); // Above the plane
+        
+        return { x, y, z };
+    } else {
+        // Full 3D case - solve the system of equations
+        // Matrix method to solve the linear system
+        // We need to solve for x, y, z from the three equations
 
-    // Solve for z
-    const zSquared = r1 ** 2 - (x - x1) ** 2 - (y - y1) ** 2;
-    const z1 = Math.sqrt(Math.max(0, zSquared)); // Above the plane
-    const z2 = -z1; // Below the plane
-
-    return { x, y, z1, z2 }; // Two possible solutions for z
+        // Using Cramer's rule or matrix inversion
+        // Create coefficient matrix
+        const coef = [
+            [A, B, C],
+            [D, E, F]
+        ];
+        
+        // Create constants vector
+        const constants = [G, H];
+        
+        // Solve the system using math.js
+        try {
+            // We have an underdetermined system (2 equations, 3 unknowns)
+            // Need to use pseudoinverse or additional constraints
+            // For simplicity, we'll use a constraint from the first sphere equation
+            
+            // First find a particular solution for z = 0
+            const zTemp = 0;
+            
+            // Solve 2x2 system for x and y
+            const det = A * E - B * D;
+            if (Math.abs(det) < 1e-10) {
+                throw new Error("Anchors are collinear, cannot determine position uniquely");
+            }
+            
+            const xTemp = (G * E - B * H) / det;
+            const yTemp = (A * H - G * D) / det;
+            
+            // Now use the first sphere equation to find the actual z
+            const zSquared = r1 * r1 - (xTemp - x1) * (xTemp - x1) - (yTemp - y1) * (yTemp - y1);
+            
+            if (zSquared < 0) {
+                // The point cannot satisfy all constraints exactly
+                // Return the best approximation with z = 0
+                return { x: xTemp, y: yTemp, z: 0 };
+            }
+            
+            const z = Math.sqrt(zSquared) + z1; // Add z1 to get actual z coordinate
+            
+            return { x: xTemp, y: yTemp, z };
+        } catch (e) {
+            console.error("Error in 3D trilateration:", e);
+            return null;
+        }
+    }
 }
 
 // Kalman filter state

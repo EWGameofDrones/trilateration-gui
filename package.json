@@ -16,6 +16,7 @@
     "concurrently": "^9.1.2"
   },
   "dependencies": {
+    "@corvu/dialog": "^0.2.4",
     "@tailwindcss/vite": "^4.0.15",
     "d3": "^7.9.0",
     "mathjs": "^14.3.1",

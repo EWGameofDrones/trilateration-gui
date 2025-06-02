@@ -10,7 +10,12 @@ import * as math from 'mathjs';
 // const fs = require('fs');
 import fs from 'fs'
 
-
+// Add these variables to store anchor positions
+let anchorPositions = [
+  [0, 0, 0],
+  [7, 0, 0],
+  [5.5, 13.416, 0]
+];
 
 // get file structure information for accessing required files
 const fileName = fileURLToPath(import.meta.url)
@@ -163,11 +168,9 @@ function initSerialConnection(win) {
       a = 0
 
       if (AA != 0 && BA != 0 && CA != 0) {
-        let triArr = trilaterationCalculations(AA, BA, CA);
+        let triArr = trilaterationCalculations(AA, BA, CA, anchorPositions);
         console.log("triArr: ", triArr);
 
-        // win.webContents.send('update-position', slidingWindow(1, triArr));
-        
         const filteredPosition = EMA(triArr, 1);
         console.log('Filtered Position: ', filteredPosition);
         filteredPosition.id = 1;
@@ -178,15 +181,12 @@ function initSerialConnection(win) {
         CA = 0
       }
       if (AB != 0 && BB != 0 && CB != 0) {
-        let triArr = trilaterationCalculations(AB, BB, CB);
+        let triArr = trilaterationCalculations(AB, BB, CB, anchorPositions);
         console.log("triArr: ", triArr);
 
-        // win.webContents.send('update-position', slidingWindow(2, triArr));
-        
         const filteredPosition = EMA(triArr, 2);
         console.log('Filtered Position:', filteredPosition);
         filteredPosition.id = 2;
-        // filteredPosition.x += 1;
 
         win.webContents.send('update-position', filteredPosition);
         AB = 0
@@ -195,18 +195,18 @@ function initSerialConnection(win) {
       }
 
       win.webContents.send('update-position', {
-        x: 0,
-        y: 0,
+        x: anchorPositions[0][0],
+        y: anchorPositions[0][1],
         id: 3
       });
       win.webContents.send('update-position', {
-        x: 7,
-        y: 0,
+        x: anchorPositions[1][0],
+        y: anchorPositions[1][1],
         id: 4
       });
       win.webContents.send('update-position', {
-        x: 5.5,
-        y: 13.416,
+        x: anchorPositions[2][0],
+        y: anchorPositions[2][1],
         id: 5
       });
       
@@ -275,6 +275,12 @@ app.whenReady().then(() => {
   ipcMain.handle('serial-status', () => {
     return serialConnection && serialConnection.isOpen
   })
+
+  ipcMain.handle('update-anchors', (event, anchors) => {
+    console.log('Updating anchor positions:', anchors);
+    anchorPositions = anchors;
+    return true;
+  });
 
   app.on('activate', () => {
     // if the app is activated but there are no windows, create a window
