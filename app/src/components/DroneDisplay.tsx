@@ -168,7 +168,6 @@ export const DroneDisplay: Component<{
     }
   }
 
-  let count = 0
   // set the drone graphics' states based on packets received from the main electron proccess
   const handleMovement = (move: PositionPacket) => {
     // count = count + 1
@@ -219,6 +218,17 @@ export const DroneDisplay: Component<{
               y={Math.floor(props.yScale(state.y) - 0.5 * props.droneSize)}
               filter="invert(100%)"
             />
+
+            <Show when={index() >= 2}>
+              <text
+                x={props.xScale(state.x) - 30}
+                y={props.yScale(state.y) - 25}
+                font-size="24"
+                fill="red"
+              >
+                Anchor:{index() - 1}
+              </text>
+            </Show>
             {/* path */}
             <Show when={props.showPaths === true}>
               <PathDisplay

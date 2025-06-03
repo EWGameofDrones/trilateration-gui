@@ -222,6 +222,11 @@ function initSerialConnection(win) {
       console.log('Serial port opened successfully')
     })
 
+    serialConnection.on('close', () => {
+      console.log('Serial port closed')
+      attemptSerialConnection(mainWindow); // Attempt to reconnect
+    })
+
     serialConnection.on('error', (err) => {
       console.error('Serial port error:', err)
     })
@@ -236,6 +241,7 @@ function initSerialConnection(win) {
   }
 }
 
+let mainWindow = null
 // will create a window of the web app
 const createWindow = () => {
   const win = new BrowserWindow({
@@ -259,6 +265,7 @@ const createWindow = () => {
     // load in the static html file
     win.loadFile(path.join(dirName, '../solidjs-dist/index.html'))
   }
+  mainWindow = win
   return win
 }
 
