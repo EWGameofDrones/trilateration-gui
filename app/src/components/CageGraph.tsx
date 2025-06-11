@@ -41,11 +41,6 @@ export const CageGraph: Component<{
   const sideGap = 80 // gap perpendicular to an axis
   const droneProportion = 0.05 // percent of the cage width that a drone icon should occupy
 
-  // dimensions of the cage in feet
-  // const [cageWidth] = createSignal(4.24)
-  const [cageWidth] = createSignal(13.416)
-  // const [cageLength] = createSignal(5.664)
-  const [cageLength] = createSignal(7)
 
   // holds available size for the graphic
   const [graphicHeight, setGraphicHeight] = createSignal<number>(100)

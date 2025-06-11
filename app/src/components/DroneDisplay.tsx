@@ -1,4 +1,4 @@
-import { easeLinear, easeQuadInOut, ScaleLinear } from 'd3'
+import { ScaleLinear } from 'd3'
 import { Component, For, getOwner, Show } from 'solid-js'
 import {
   PositionPacket,
@@ -10,6 +10,7 @@ import { PathDisplay } from './PathDisplay'
 
 // used to represent the state of a drone graphic
 type DroneState = {
+  id: number;
   // the position it started from in the current animation
   originPos: {
     x: number
@@ -49,92 +50,14 @@ export const DroneDisplay: Component<{
     {}
   )
 
-  const moveRate = 0.25 // Increase to 100ms for smoother animation
   const fpsCap = 60 // maximum amount of frames per second to allow resource allocation for
 
   // the smallest distance in feet away from the last path node
   // for which a new path node will be generated
   const pathResolution = 1
 
-  // if the animation is done and there is a move in the queue,
-  // start an animation to move toward it
-  const checkForNewMove = (id: number) => {
-    if (!(id in droneStates)) return
-
-    const droneState = droneStates[id]
-    if (
-      droneState.animationProgress >= 1 &&
-      (droneState.targetPos.x !== droneState.queuedPos.x ||
-        droneState.targetPos.y !== droneState.queuedPos.y)
-    ) {
-      // restart the animation
-      setDroneStates(id, 'animationProgress', 0)
-
-      // get the next target position from the queue
-      setDroneStates(
-        id,
-        'targetPos',
-        structuredClone(unwrap(droneState.queuedPos))
-      )
-
-      // start the animation
-      animateTest(id)
-    }
-  }
-
-  async function animateTest(id: number) {
-    if (!(id in droneStates)) return
-    const state = droneStates[id]
-    console.log(state)
-    
-    const animationFrame = () => {
-      setDroneStates(id, {
-        x: state.queuedPos.x,
-        y: state.queuedPos.y,
-      })
-    }
-
-    requestAnimationFrame(animationFrame)    
-  }
   // over a period of time, animate a drone graphic's movement from
   // an origin point to a target point
-  async function animate(id: number) {
-    if (!(id in droneStates)) return
-    const state = droneStates[id]
-    const startTime = performance.now() // Use performance.now() for more precise timing
-
-    const animationFrame = () => {
-      const currentTime = performance.now()
-      const elapsed = currentTime - startTime
-      const progress = Math.min(elapsed / (moveRate * 1000), 1)
-
-      if (progress < 1) {
-        const traversalProgress = easeLinear(progress)
-
-        // Batch state updates
-        setDroneStates(id, {
-          animationProgress: progress,
-          x:
-            (state.targetPos.x - state.originPos.x) * traversalProgress +
-            state.originPos.x,
-          y:
-            (state.targetPos.y - state.originPos.y) * traversalProgress +
-            state.originPos.y,
-        })
-
-        requestAnimationFrame(animationFrame)
-      } else {
-        // Animation complete
-        setDroneStates(id, {
-          animationProgress: 1,
-          originPos: structuredClone(unwrap(state.targetPos)),
-        })
-        checkForNewMove(id)
-      }
-    }
-
-    requestAnimationFrame(animationFrame)
-  }
 
   // record flight paths of a drone
   async function trackPath(id: number) {
@@ -176,6 +99,7 @@ export const DroneDisplay: Component<{
     // create the state for one
     if (!(move.id in droneStates)) {
       setDroneStates(move.id, {
+        id: move.id, // Explicitly set the ID property
         animationProgress: 1, // start at 100%
         originPos: { x: move.x, y: move.y },
         targetPos: { x: move.x, y: move.y },
@@ -188,6 +112,7 @@ export const DroneDisplay: Component<{
       return
     } else {
       setDroneStates(move.id, {
+        id: move.id, // Explicitly set the ID property
         animationProgress: 1, // start at 100%
         originPos: { x: move.x, y: move.y },
         targetPos: { x: move.x, y: move.y },
@@ -219,16 +144,48 @@ export const DroneDisplay: Component<{
               filter="invert(100%)"
             />
 
-            <Show when={index() >= 2}>
+            <Show when={state.id === 3}>
               <text
                 x={props.xScale(state.x) - 30}
                 y={props.yScale(state.y) - 25}
                 font-size="24"
                 fill="red"
               >
-                Anchor:{index() - 1}
+                Anchor: C
               </text>
             </Show>
+            <Show when={state.id === 4}>
+              <text
+                x={props.xScale(state.x) - 30}
+                y={props.yScale(state.y) - 25}
+                font-size="24"
+                fill="red"
+              >
+                Anchor: A
+              </text>
+            </Show>
+            <Show when={state.id === 5}>
+              <text
+                x={props.xScale(state.x) - 30}
+                y={props.yScale(state.y) - 25}
+                font-size="24"
+                fill="red"
+              >
+                Anchor: B
+              </text>
+            </Show>
+
+            <Show when={state.id === 6}>
+              <text
+                x={props.xScale(state.x) - 30}
+                y={props.yScale(state.y) - 25}
+                font-size="24"
+                fill="red"
+              >
+                Anchor: D
+              </text>
+            </Show>
+
             {/* path */}
             <Show when={props.showPaths === true}>
               <PathDisplay

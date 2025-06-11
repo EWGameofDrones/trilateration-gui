@@ -6,6 +6,7 @@ const packetSchema = z.object({
   id: z.number(),
   x: z.number(),
   y: z.number(),
+  z1: z.number().optional(),
 })
 export type PositionPacket = z.infer<typeof packetSchema>
 
@@ -38,6 +39,7 @@ export function parsePacket(packet: unknown) {
   const parsedPacket = packetSchema.safeParse(packet)
   if (parsedPacket.success === false) {
     console.error('Unable to parse packet from main process!')
+    console.error(parsedPacket.error)
     return
   }
 

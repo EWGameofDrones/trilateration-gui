@@ -3,18 +3,23 @@ import path, { dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { SerialPort } from 'serialport'
 import { ReadlineParser } from '@serialport/parser-readline'
-import { trilaterationCalculations, kalmanFilterPosition } from '../util/calculations.js'
+import { trilaterationCalculations, kalmanFilterPosition, 
+  multilaterationCalculations, trueMultilaterationMathjs,
+  trueMultilaterationNLS
+} from '../util/calculations.js'
 import { EMA } from '../util/calculations.js'
 import { Worker, isMainThread, parentPort } from 'worker_threads'
+
 import * as math from 'mathjs';
 // const fs = require('fs');
 import fs from 'fs'
 
 // Add these variables to store anchor positions
 let anchorPositions = [
-  [0, 0, 0],
-  [7, 0, 0],
-  [5.5, 13.416, 0]
+  [12.5, 12.9, 3.5],
+  [26.58, 0, 5.5],
+  [0, 0, 2.5],
+  [22.08, 12.9, 0]
 ];
 
 // get file structure information for accessing required files
@@ -64,7 +69,7 @@ let test = {x: 0, y: 0, id: 1};
 function initSerialConnection(win) {
   console.log('initSerialConnection')
   try {
-    const serialPath = process.platform === 'win32' ? 'COM3' : '/dev/ttyACM5' // Windows path vs Linux path
+    const serialPath = process.platform === 'win32' ? 'COM3' : '/dev/ttyACM2' // Windows path vs Linux path
 
     // Check if serialPath exists
     if (!fs.existsSync(serialPath)) {
@@ -105,6 +110,8 @@ function initSerialConnection(win) {
     let BB = 0
     let CA = 0
     let CB = 0
+    let DA = 0
+    let DB = 0
 
     let smoothedA = null;
     let smoothedB = null;
@@ -112,7 +119,9 @@ function initSerialConnection(win) {
 
     parser.on('data', (line) => {
       let arr = line.split(' ')
-      console.log(arr);
+      // console.log(arr);
+
+      // Differentiating between Responder A and B
       if (arr[0] == "A") { 
         a = parseFloat(arr[1])
         // aDeque.push(arr[1])
@@ -128,7 +137,7 @@ function initSerialConnection(win) {
 
       if (arr[3] == "A") {
         let distance = parseFloat(arr[1]);
-        if (distance > 15) {
+        if (distance > 45) {
           console.log("Distance is too far");
           return;
         }
@@ -137,6 +146,7 @@ function initSerialConnection(win) {
 
         if (arr[0] == "A") {
           AA = distance
+          console.log("A: ", distance);
         }
         else if (arr[0] == "B") {
           BA = distance
@@ -144,48 +154,67 @@ function initSerialConnection(win) {
         else if (arr[0] == "C") {
           CA = distance
         }
+        else if (arr[0] == "D") {
+          DA = distance
+        }
       }
       else if (arr[3] == "B") {
         let distance = parseFloat(arr[1]);
+        // console.log("Distance: ", distance);
         distance = distance * 3.28084; // Convert meters to feet
+        // console.log("Distance: ", distance);
         // console.log(`Distance in feet: ${distance}`);
-        if (distance > 15) {
+        if (distance > 45) {
           console.log("Distance is too far: ", distance);
           return;
         }
 
         if (arr[0] == "A") {
+          // console.log("A: ", distance);
           AB = distance
         }
         else if (arr[0] == "B") {
+          // console.log("B: ", distance);
           BB = distance
         }
         else if (arr[0] == "C") {
           CB = distance
+          // console.log("CB: ", CB);
+        }
+        else if (arr[0] == "D") {
+          DB = distance
+          // console.log("DB: ", DB);
         }
       }
 
       a = 0
 
-      if (AA != 0 && BA != 0 && CA != 0) {
-        let triArr = trilaterationCalculations(AA, BA, CA, anchorPositions);
+      if (AA != 0 && BA != 0 && CA != 0 && DA != 0) {
+        let triArr = trueMultilaterationMathjs(AA, BA, CA, DA, anchorPositions);
+        if (!triArr.z1) triArr.z1 = 0;
+        if (!triArr.z2) triArr.z2 = 0;
+    
         console.log("triArr: ", triArr);
 
         const filteredPosition = EMA(triArr, 1);
-        console.log('Filtered Position: ', filteredPosition);
+        // console.log('Filtered Position: ', filteredPosition);
         filteredPosition.id = 1;
 
         win.webContents.send('update-position', filteredPosition);
         AA = 0
         BA = 0
         CA = 0
+        DA = 0
       }
       if (AB != 0 && BB != 0 && CB != 0) {
-        let triArr = trilaterationCalculations(AB, BB, CB, anchorPositions);
-        console.log("triArr: ", triArr);
+        let triArr = trueMultilaterationMathjs(AB, BB, CB, DB, anchorPositions);
+        if (!triArr.z1) triArr.z1 = 0;
+        if (!triArr.z2) triArr.z2 = 0;
+    
+        // console.log("triArr: ", triArr);
 
         const filteredPosition = EMA(triArr, 2);
-        console.log('Filtered Position:', filteredPosition);
+        // console.log('Filtered Position:', filteredPosition);
         filteredPosition.id = 2;
 
         win.webContents.send('update-position', filteredPosition);
@@ -208,6 +237,11 @@ function initSerialConnection(win) {
         x: anchorPositions[2][0],
         y: anchorPositions[2][1],
         id: 5
+      });
+      win.webContents.send('update-position', {
+        x: anchorPositions[3][0],
+        y: anchorPositions[3][1],
+        id: 6
       });
       
       // console.log('Parsed line:', arr[0], arr[1], arr[2])
@@ -304,7 +338,7 @@ app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
 })
 
-const MAX_RETRIES = 10;
+const MAX_RETRIES = 100;
 const RETRY_DELAY = 2000; // 2 seconds
 
 function attemptSerialConnection(win, retryCount = 0) {

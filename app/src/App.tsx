@@ -3,8 +3,12 @@ import './App.css'
 import { CageGraph } from './components/CageGraph'
 import { parsePacket } from './electronInteraction/handlePacket'
 import Dialog from '@corvu/dialog' // 'corvu/dialog'
+import { AltitudeIndicator } from './components/AltitudeIndicator'
+
 
 const App: Component<{}> = () => {
+  const [dialogOpen, setDialogOpen] = createSignal(false)
+
   if (window.electronAPI !== undefined) {
     window.electronAPI.onPositionUpdate(parsePacket)
   } else {
@@ -12,14 +16,14 @@ const App: Component<{}> = () => {
   }
 
   // Cage Dimension
-  const [cageLength, setCageLength] = createSignal(7)
-  const [cageWidth, setCageWidth] = createSignal(13.416)
+  const [cageLength, setCageLength] = createSignal(26.58)
+  const [cageWidth, setCageWidth] = createSignal(12.9)
   // const [showPaths, setShowPaths] = createSignal(false)
 
   // Anchor positions with default values
-  const [anchor1, setAnchor1] = createSignal({ x: 0, y: 0, z: 0 })
-  const [anchor2, setAnchor2] = createSignal({ x: 7, y: 0, z: 0 })
-  const [anchor3, setAnchor3] = createSignal({ x: 5.5, y: 13.416, z: 0 })
+  const [anchor1, setAnchor1] = createSignal({ x: 0, y: 0, z: 2.5 })
+  const [anchor2, setAnchor2] = createSignal({ x: 12.9, y: 12.9, z: 3.5 })
+  const [anchor3, setAnchor3] = createSignal({ x: 26.58, y: 0, z: 5.5 })
   
 
   // Input handlers
@@ -79,7 +83,7 @@ const App: Component<{}> = () => {
   return (
     <div class="w-screen flex flex-col h-screen">
       {/* pop up */}
-      <Dialog open={showPaths()} onOpenChange={setShowPaths}>
+      <Dialog open={dialogOpen()} onOpenChange={setDialogOpen}>
         <Dialog.Trigger
           class="m-4 bg-violet-950 border-[1px] border-white rounded-md p-2"
         >
@@ -200,17 +204,24 @@ const App: Component<{}> = () => {
         </Dialog.Portal>
       </Dialog>
 
-      <CageGraph 
-        showPaths={showPaths} 
-        cageLength={cageLength} 
-        cageWidth={cageWidth} 
-        anchors={[
-          [anchor1().x, anchor1().y, anchor1().z],
-          [anchor2().x, anchor2().y, anchor2().z],
-          [anchor3().x, anchor3().y, anchor3().z]
-        ]}
-      />
-
+      <div class="flex flex-1">
+        {/* Altitude indicators */}
+        <div class="flex flex-col justify-center space-y-2 p-2 bg-violet-950/20 border-r border-violet-900">
+          <AltitudeIndicator droneId={1} maxHeight={10} label="Drone 1 Alt" />
+          <AltitudeIndicator droneId={2} maxHeight={10} label="Drone 2 Alt" />
+        </div>
+        
+        <CageGraph 
+          showPaths={showPaths} 
+          cageLength={cageLength} 
+          cageWidth={cageWidth} 
+          anchors={[
+            [anchor1().x, anchor1().y, anchor1().z],
+            [anchor2().x, anchor2().y, anchor2().z],
+            [anchor3().x, anchor3().y, anchor3().z]
+          ]}
+        />
+      </div>
 
       <button
         ref={buttonRef}
